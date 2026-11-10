@@ -15,6 +15,8 @@ API:
   GET  /r/<adres>     -> raport do udostepnienia (ta sama strona, skan uruchamia sie sam)
   GET  /whitepaper    -> WHITEPAPER.md jako HTML;  /LICENSE, /NOTICE, /TRADEMARK
   GET  /source.tar.gz -> pelny kod zrodlowy tej instancji (AGPL-3.0, sekcja 13)
+  GET  /binance       -> Binance Guard (audyt klucza API, strażnik adresów, wykrywacz phishingu; EN/PL/ZH)
+  POST /api/binance/relay -> przekaznik TYLKO DO ODCZYTU: przyjmuje gotowy podpis, nigdy sekret
 """
 import json
 import os
@@ -33,16 +35,20 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import scanner  # noqa: E402
 import forensics  # noqa: E402
 import mdlite  # noqa: E402
+import binance_relay  # noqa: E402
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DOC_DIRS = [os.path.join(APP_DIR, "docs"), APP_DIR]
 SOURCE_URL = os.environ.get("SOURCE_URL", "/source.tar.gz")
 # Pliki wchodzace do /source.tar.gz (AGPL sekcja 13 - kod tej instancji dla uzytkownikow sieci)
-SOURCE_FILES = ["server.py", "scanner.py", "forensics.py", "mdlite.py", "zgody.py", "Dockerfile",
+SOURCE_FILES = ["server.py", "scanner.py", "forensics.py", "mdlite.py", "zgody.py", "binance_relay.py", "Dockerfile",
                 ".dockerignore", ".gitignore", "README.md", "WHITEPAPER.md", "LICENSE", "NOTICE",
                 "TRADEMARK.md", "AUTHORS", "static/index.html", "static/app.js", "static/style.css",
                 "static/favicon.svg", "tests/e2e.js", "tests/shots.js", "tests/sample.txt", "tests/package.json", "tests/run_e2e.sh",
-                "tests/test_api.sh"]
+                "tests/test_api.sh", "static/binance.html", "static/binance.js", "static/binance.css",
+                "static/bg-i18n.js", "static/bg-detector.js", "static/bg-core.js", "tests/test_detector.js",
+                "tests/test_bg_core.js", "tests/test_relay.py", "tests/test_worker.mjs", "tests/e2e_binance.js",
+                "cloudflare/worker.js", "cloudflare/wrangler.toml", "cloudflare/README.md"]
 _src_cache = {}
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -52,6 +58,8 @@ RATE_WINDOW = int(os.environ.get("RATE_WINDOW", "600"))      # w oknie 10 min
 MAX_RUNNING = int(os.environ.get("MAX_RUNNING", "4"))        # rownoczesnych skanow na serwer
 JOB_MAX_SECONDS = int(os.environ.get("JOB_MAX_SECONDS", "600"))
 TRUST_PROXY = os.environ.get("TRUST_PROXY", "0") == "1"      # X-Forwarded-For tylko za proxy chmury
+BG_RATE_MAX = int(os.environ.get("BG_RATE_MAX", "40"))       # zapytan relay Binance na IP
+BG_RATE_WINDOW = int(os.environ.get("BG_RATE_WINDOW", "600"))  # w oknie 10 min
 ADDR_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 RANGE_RE = re.compile(r"^(all|year|\d{1,9}-(\d{1,9}|latest)?)$")
 MIME = {".html": "text/html; charset=utf-8", ".js": "application/javascript; charset=utf-8",
@@ -68,6 +76,7 @@ lock = threading.Lock()
 jobs = {}          # id -> dict
 cache = {}         # (address, range) -> (time, job_id)
 hits = {}          # ip -> deque[time]
+bg_hits = {}       # ip -> deque[time]  (relay Binance Guard; tylko licznik, bez tresci)
 
 
 def log(msg):
@@ -82,6 +91,8 @@ def cleanup():
         live = {j for _t, j in cache.values()}
         for ip in [ip for ip, q in hits.items() if not q or now - q[-1] > RATE_WINDOW]:
             del hits[ip]   # IP trzymamy w pamieci tylko na czas okna limitu
+        for ip in [ip for ip, q in bg_hits.items() if not q or now - q[-1] > BG_RATE_WINDOW]:
+            del bg_hits[ip]
         for jid in [j for j, d in jobs.items()
                     if j not in live and d["status"] != "running" and now - d["created"] > CACHE_TTL]:
             del jobs[jid]
@@ -246,12 +257,16 @@ class Handler(BaseHTTPRequestHandler):
                              {"Content-Disposition": 'attachment; filename="szlaban-source.tar.gz"'})
         if re.match(r"^/r/0x[0-9a-fA-F]{40}/?$", path):
             return self.static("/index.html")
+        if path in ("/binance", "/binance/"):
+            return self.static("/binance.html")
         if path.startswith("/api/"):
             return self.err(404, "Nieznany adres API.")
         return self.static(path)
 
     def do_POST(self):
         u = urlparse(self.path)
+        if u.path == "/api/binance/relay":
+            return self.binance_relay()
         if u.path != "/api/scan":
             return self.err(404, "Nieznany adres API.")
         try:
@@ -283,6 +298,40 @@ class Handler(BaseHTTPRequestHandler):
             v["poll"] = "/api/job/" + jid
             return self.send(202, v)
         return self.send(200 if v["status"] == "done" else 502, v)
+
+    def binance_relay(self):
+        """Relay Binance Guard. Bez logowania tresci: log_message zapisuje tylko sciezke i kod."""
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            n = -1
+        if n < 0 or n > 2048:
+            return self.send(413, {"error": "too_large"})
+        if (self.headers.get("Content-Type") or "").split(";")[0].strip().lower() != "application/json":
+            return self.send(415, {"error": "json_required"})
+        ip, now = self.client_ip(), time.time()
+        cleanup()
+        with lock:
+            q = bg_hits.setdefault(ip, deque())
+            while q and now - q[0] > BG_RATE_WINDOW:
+                q.popleft()
+            limited = len(q) >= BG_RATE_MAX
+            if not limited:
+                q.append(now)
+        if limited:
+            return self.send(429, {"error": "rate_limited"}, extra={"Retry-After": "60"})
+        try:
+            data = json.loads(self.rfile.read(n).decode("utf-8") or "{}")
+        except (ValueError, UnicodeDecodeError):
+            return self.send(400, {"error": "bad_json"})
+        try:
+            code, body = binance_relay.call(data)
+        except binance_relay.RelayError as e:
+            code, body = e.status, {"error": e.code, "message": e.msg}
+        except Exception as e:  # nigdy nie logujemy danych wejsciowych, tylko typ bledu
+            log("binance relay blad: %s" % type(e).__name__)
+            code, body = 500, {"error": "internal"}
+        return self.send(code, body, extra={"X-Robots-Tag": "noindex", "X-BG-Relay": "server"})
 
     def doc_path(self, name):
         for d in DOC_DIRS:

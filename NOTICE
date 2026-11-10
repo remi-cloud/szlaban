@@ -42,3 +42,7 @@ Data is fetched at runtime; no copy of it is bundled in this repository or image
 
 Nazwy produktów i firm wymienione powyżej należą do ich właścicieli i służą wyłącznie identyfikacji.
 Product and company names above belong to their owners and are used for identification only.
+
+Binance Guard (/binance): łączy się tylko z oficjalnym API Binance (https://api.binance.com), wyłącznie
+z endpointami do odczytu. Specyfikacja: https://github.com/binance/binance-api-swagger (spot_api.yaml).
+Niezależne narzędzie, niepowiązane z Binance. / Independent tool, not affiliated with Binance.

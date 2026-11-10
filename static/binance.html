@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<!-- Szlaban – Binance Guard – Copyright (C) 2026 Robi (@robi44610) -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0a08">
+<meta name="description" content="Binance Guard: API key audit, withdrawal address guardian and fake-Binance detector. Read-only, independent, open source.">
+<title>Binance Guard</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/binance.css">
+</head>
+<body>
+<header class="top">
+  <div class="stripe" aria-hidden="true"></div>
+  <div class="wrap brand bg-brand">
+    <div>
+      <a href="/" class="name">SZLABAN</a> <span class="bg-mod">· BINANCE GUARD</span>
+      <div class="tag" data-i18n="tagline"></div>
+    </div>
+    <div class="langs" role="group" aria-label="Language">
+      <button type="button" class="ghost lang" data-lang="en" lang="en">EN</button>
+      <button type="button" class="ghost lang" data-lang="pl" lang="pl">PL</button>
+      <button type="button" class="ghost lang" data-lang="zh" lang="zh-CN">中文</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <nav class="small bg-nav"><a href="/" data-i18n="back"></a></nav>
+  <section class="panel">
+    <h1 data-i18n="h1"></h1>
+    <p class="lead" data-i18n="lead"></p>
+    <p class="bg-disclaimer small" id="disclaimer" data-i18n="disclaimer">Independent open-source tool. Not affiliated with, endorsed by or sponsored by Binance. “Binance” is a trademark of its owner and is used here only to describe what the tool checks. Information only – not financial or security advice, no warranty.</p>
+  </section>
+
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" class="tab" id="tab-audit" data-tab="audit" aria-controls="sec-audit" data-i18n="tab_audit"></button>
+    <button type="button" role="tab" class="tab" id="tab-guard" data-tab="guard" aria-controls="sec-guard" data-i18n="tab_guard"></button>
+    <button type="button" role="tab" class="tab" id="tab-detect" data-tab="detect" aria-controls="sec-detect" data-i18n="tab_detect"></button>
+  </div>
+
+  <section class="panel" id="keypanel">
+    <div class="sechead"><h2 data-i18n="key_h"></h2>
+      <div class="ranges" id="modeSwitch">
+        <label class="chip"><input type="radio" name="kmode" value="key" checked><span data-i18n="mode_key"></span></label>
+        <label class="chip"><input type="radio" name="kmode" value="manual"><span data-i18n="mode_manual"></span></label>
+      </div>
+    </div>
+    <div id="keyform">
+      <p class="small"><b data-i18n="key_rec"></b><br><span data-i18n="key_steps"></span></p>
+      <form id="kform" autocomplete="off">
+        <label for="apiKey" class="lbl" data-i18n="key_label"></label>
+        <input type="text" id="apiKey" name="bg-k" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="128">
+        <label for="apiSecret" class="lbl" data-i18n="secret_label"></label>
+        <input type="password" id="apiSecret" name="bg-s" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="128">
+      </form>
+      <p class="small bg-secret" data-i18n="secret_note"></p>
+      <p class="small" data-i18n="hmac_only"></p>
+      <div class="bg-actions"><button type="button" class="ghost" id="clearKeys" data-i18n="clear"></button></div>
+      <details><summary data-i18n="how_h"></summary>
+        <ul class="small"><li data-i18n="how_1"></li><li data-i18n="how_2"></li><li data-i18n="how_3"></li><li data-i18n="how_4"></li></ul>
+      </details>
+    </div>
+  </section>
+
+  <section class="panel tabsec" id="sec-audit" role="tabpanel" aria-labelledby="tab-audit">
+    <div id="auditKey">
+      <button type="button" id="runAudit" data-i18n="run_audit"></button>
+      <div class="status" id="auditStatus" aria-live="polite"></div>
+      <div class="err" id="auditErr" role="alert"></div>
+      <div id="auditOut"></div>
+    </div>
+    <div id="auditManual" class="hidden">
+      <h2 data-i18n="manual_h"></h2>
+      <p class="small" data-i18n="manual_note"></p>
+      <ul class="checklist" id="checklist"></ul>
+      <div class="bg-score" id="manualScore"></div>
+    </div>
+  </section>
+
+  <section class="panel tabsec hidden" id="sec-guard" role="tabpanel" aria-labelledby="tab-guard">
+    <h2 data-i18n="guard_h"></h2>
+    <p class="small" data-i18n="guard_note"></p>
+    <div class="bg-actions">
+      <button type="button" id="fetchAddr" data-i18n="fetch_addr"></button>
+      <button type="button" class="ghost" id="saveBase" disabled data-i18n="save_base"></button>
+      <button type="button" class="ghost" id="delBase" data-i18n="del_base"></button>
+    </div>
+    <div class="ranges">
+      <span class="small" data-i18n="store_mode"></span>
+      <label class="chip"><input type="radio" name="smode" value="hash" checked><span data-i18n="store_hash"></span></label>
+      <label class="chip"><input type="radio" name="smode" value="data"><span data-i18n="store_data"></span></label>
+    </div>
+    <div class="meta" id="baseInfo"></div>
+    <div class="status" id="guardStatus" aria-live="polite"></div>
+    <div class="err" id="guardErr" role="alert"></div>
+    <div id="diffOut"></div>
+    <div id="addrOut"></div>
+    <div class="howto">
+      <b data-i18n="guide_h"></b>
+      <ul class="small"><li data-i18n="guide_1"></li><li data-i18n="guide_2"></li><li data-i18n="guide_3"></li><li data-i18n="guide_4"></li></ul>
+    </div>
+  </section>
+
+  <section class="panel tabsec hidden" id="sec-detect" role="tabpanel" aria-labelledby="tab-detect">
+    <h2 data-i18n="detect_h"></h2>
+    <p class="small" data-i18n="detect_note"></p>
+    <textarea id="detIn" rows="6" maxlength="20000" spellcheck="false" autocapitalize="off" autocorrect="off" data-i18n-ph="detect_ph"></textarea>
+    <div class="ranges">
+      <span class="small" data-i18n="detect_mode"></span>
+      <label class="chip"><input type="radio" name="dmode" value="auto" checked><span data-i18n="dm_auto"></span></label>
+      <label class="chip"><input type="radio" name="dmode" value="url"><span data-i18n="dm_url"></span></label>
+      <label class="chip"><input type="radio" name="dmode" value="email"><span data-i18n="dm_email"></span></label>
+      <label class="chip"><input type="radio" name="dmode" value="sms"><span data-i18n="dm_sms"></span></label>
+    </div>
+    <button type="button" id="runDetect" data-i18n="analyze"></button>
+    <div id="detOut"></div>
+    <p class="small"><span data-i18n="verify_cta"></span> <a id="verifyLink" href="https://www.binance.com/en/official-verification" target="_blank" rel="noopener noreferrer" data-i18n="verify_link"></a></p>
+    <p class="small" id="officialList"></p>
+  </section>
+
+  <footer class="small"><span data-i18n="footer"></span> · <a href="https://github.com/remi-cloud/szlaban" data-i18n="source"></a> · <a href="/LICENSE" data-i18n="license"></a> · <a href="/TRADEMARK" data-i18n="trademark"></a><br><span data-i18n="disclaimer"></span></footer>
+</main>
+<script src="/bg-i18n.js"></script>
+<script src="/bg-core.js"></script>
+<script src="/bg-detector.js"></script>
+<script src="/binance.js"></script>
+</body>
+</html>

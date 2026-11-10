@@ -23,4 +23,27 @@ if [ "$code" = 202 ]; then
     python3 -c "import json,sys;sys.exit(0 if json.load(open('/tmp/szlaban_api.json'))['status']!='running' else 1)" && break; done
 fi
 check "skan 15M-20M podsumowanie" "$(python3 -c "import json;r=json.load(open('/tmp/szlaban_api.json'))['result'];print(r['summary'])")" "{'WYSOKIE': 14, 'SREDNIE': 2, 'NISKIE': 3}"
+# --- Binance Guard ---
+check "binance strona" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/binance")" 200
+check "binance strona /" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/binance/")" 200
+for f in binance.js binance.css bg-i18n.js bg-core.js bg-detector.js; do
+  check "binance plik $f" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/$f")" 200
+done
+check "binance zastrzezenie w HTML" "$(curl -s "$BASE/binance" | grep -c 'Not affiliated with, endorsed by or sponsored by Binance')" 1
+check "binance CSP" "$(curl -sI "$BASE/binance" | grep -ci "^content-security-policy: default-src 'self'")" 1
+check "link w nawigacji Szlabanu" "$(curl -s "$BASE/" | grep -c 'href="/binance"')" 1
+R="$BASE/api/binance/relay"; J='Content-Type: application/json'
+K=TESTKEYneverLOGGED0000000000000000000000000000000000000000000000
+TS=$(python3 -c 'import time;print(int(time.time()*1000))'); SG=$(printf 'a%.0s' $(seq 1 64))
+check "relay endpoint spoza listy" "$(curl -s -o /dev/null -w '%{http_code}' -H "$J" -d '{"endpoint":"order"}' "$R")" 400
+check "relay pole secret odrzucone" "$(curl -s -H "$J" -d '{"endpoint":"apiRestrictions","secret":"x"}' "$R" | python3 -c 'import json,sys;print(json.load(sys.stdin)["error"])')" bad_field
+check "relay zly podpis" "$(curl -s -H "$J" -d "{\"endpoint\":\"apiRestrictions\",\"apiKey\":\"$K\",\"timestamp\":\"$TS\",\"recvWindow\":\"5000\",\"signature\":\"zz\"}" "$R" | python3 -c 'import json,sys;print(json.load(sys.stdin)["error"])')" bad_signature
+check "relay wymaga JSON" "$(curl -s -o /dev/null -w '%{http_code}' -d 'a=1' "$R")" 415
+check "relay za duze" "$(head -c 5000 /dev/zero | tr '\0' a | curl -s -o /dev/null -w '%{http_code}' -H "$J" --data-binary @- "$R")" 413
+check "relay no-store" "$(curl -s -D - -o /dev/null -H "$J" -d '{}' "$R" | grep -ci '^cache-control: no-store')" 1
+# Prawdziwe zapytanie do Binance (podpis falszywy): 400 (Binance odrzuca klucz), albo 451 jesli serwer stoi w regionie zablokowanym
+code=$(curl -s -o /tmp/bg_relay.json -w '%{http_code}' -H "$J" -d "{\"endpoint\":\"apiRestrictions\",\"apiKey\":\"$K\",\"timestamp\":\"$TS\",\"recvWindow\":\"5000\",\"signature\":\"$SG\"}" "$R")
+case "$code" in 400|451|502) check "relay do Binance ($(cat /tmp/bg_relay.json | head -c 120))" ok ok;; *) check "relay do Binance" "$code" "400|451|502";; esac
+code=$(curl -s -o /tmp/bg_time.json -w '%{http_code}' -H "$J" -d '{"endpoint":"time"}' "$R")
+case "$code" in 200|451|502) check "relay time ($code)" ok ok;; *) check "relay time" "$code" "200|451|502";; esac
 echo "wynik: $ok OK, $bad FAIL"; [ $bad = 0 ]

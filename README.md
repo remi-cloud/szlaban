@@ -82,6 +82,47 @@ BASE=http://127.0.0.1:8080 bash tests/test_api.sh     # API (curl)
 bash tests/run_e2e.sh                                  # przeglądarka bez okna (node + Chrome)
 ```
 
+## Binance Guard (`/binance`) – EN / PL / 中文
+
+Osobna sekcja Szlabanu do ochrony konta Binance: **https://szlaban.remi-cloud.workers.dev/binance**.
+Interfejs w trzech językach (angielski, polski, chiński uproszczony), język wybierany z przeglądarki
+i zapamiętywany. **Niezależne narzędzie, niepowiązane z Binance** (patrz [TRADEMARK.md](TRADEMARK.md)).
+
+1. **Audyt klucza API** – wklejasz klucz tylko do odczytu (HMAC). Raport: wypłaty, handel
+   (spot/margin/futures/portfolio margin/opcje), transfery uniwersalne i do subkont, ograniczenie IP,
+   wiek klucza, status konta – z poziomem ryzyka i krokami naprawy. Tryb bez klucza: lista kontrolna.
+2. **Strażnik adresów wypłat** – pobiera listę zapisanych adresów wypłat, zapisuje punkt odniesienia
+   **tylko w przeglądarce** (localStorage; same skróty SHA-256 albo pełne dane) i przy kolejnej kontroli
+   pokazuje adresy nowe, usunięte, podmienione pod tą samą etykietą oraz zmiany statusu białej listy.
+3. **Wykrywacz fałszywego Binance** – offline w przeglądarce: link, nadawca e-maila, treść SMS.
+   Lista oficjalnych domen, homoglify i punycode, literówki, podejrzane końcówki, skracacze, trik z „@”,
+   prośby o frazę seed, kody 2FA, zdalny dostęp, „bezpieczny portfel”. Wynik 0–100 z powodami
+   i link do oficjalnego [Binance Verify](https://www.binance.com/en/official-verification).
+
+**Ochrona klucza tajnego.** Podpis HMAC-SHA256 powstaje w przeglądarce (WebCrypto, klucz
+nieeksportowalny). Binance nie obsługuje CORS dla podpisanych zapytań, więc przeglądarka wysyła do
+`POST /api/binance/relay` tylko: nazwę endpointu z listy, API key, `timestamp`, `recvWindow` i gotowy
+podpis. Relay odrzuca każde inne pole (np. `secret`), sam składa zapytanie, łączy się tylko z
+`https://api.binance.com`, bez przekierowań, z limitem czasu i rozmiaru, nagłówkiem `no-store` i bez
+logowania treści (CI sprawdza, że w logach nie ma klucza ani podpisu). Na adresie Cloudflare relay
+działa na serwerze brzegowym blisko użytkownika (`cloudflare/worker.js`); na Renderze (USA) Binance
+odpowiada HTTP 451, a strona wyjaśnia to i proponuje adres Cloudflare albo uruchomienie lokalne
+(`python3 server.py` → http://127.0.0.1:8080/binance). Klucz z ograniczeniem do domowego IP zadziała
+tylko przy uruchomieniu lokalnym.
+
+**Endpointy Binance (tylko odczyt), sprawdzone w oficjalnej specyfikacji**
+[binance/binance-api-swagger `spot_api.yaml`](https://github.com/binance/binance-api-swagger) i w oficjalnym
+[binance-connector-python](https://github.com/binance/binance-connector-python) (`binance_sdk_wallet`):
+`GET /sapi/v1/account/apiRestrictions`, `GET /sapi/v1/account/status`,
+`GET /sapi/v1/account/apiTradingStatus`, `GET /sapi/v1/capital/withdraw/address/list`, `GET /api/v3/time`.
+Podpis zgodny z [rest-api.md „SIGNED … HMAC Keys”](https://github.com/binance/binance-spot-api-docs/blob/master/rest-api.md)
+(testy używają wektorów z tej dokumentacji). **Oficjalne domeny** w wykrywaczu: `binance.com`,
+`binance.info` (centrum pomocy i Binance Verify), `binance.vision` (serwery API z dokumentacji).
+`binance.me`, `binance.us`, `binance.org`, `bnbchain.org` są oznaczane jako „powiązane – sprawdź w Binance Verify”.
+
+Testy: `node tests/test_detector.js`, `node tests/test_bg_core.js`, `node tests/test_worker.mjs`,
+`python3 -m unittest tests/test_relay.py`, a e2e w przeglądarce: `node tests/e2e_binance.js` (playwright-core).
+
 ## Licencja
 
 **GNU AGPL-3.0-only**, © 2026 Robi (@robi44610), patrz [LICENSE](LICENSE). Kto uruchamia
@@ -111,6 +152,29 @@ in [WHITEPAPER.md](WHITEPAPER.md).
 Licence: **AGPL-3.0-only**, © 2026 Robi (@robi44610). If you run a modified version as a network
 service you must offer its source to users (AGPL §13). The name and logo are not licensed to forks.
 Commercial or closed licensing is available from the author on request. Information only, no warranty.
+
+### Binance Guard (`/binance`)
+
+A separate Szlaban section for Binance account security, fully available in English, Polish and
+Simplified Chinese: (1) **API key audit** – withdrawals, trading, transfers, IP restriction, key age and
+account status with risk levels and fixes, or a no-key checklist; (2) **withdrawal address guardian** –
+baseline of your withdrawal whitelist stored only in your browser, then diffs (new/removed/changed);
+(3) **fake-Binance detector** – offline analysis of links, e-mail senders and SMS text with a 0–100
+score and a link to the official Binance Verify. The HMAC secret never leaves the browser: requests are
+signed with WebCrypto and only the API key plus the finished signature go through a minimal read-only
+relay (five allowlisted endpoints, no logs, no storage, `no-store`). Binance blocks US servers (HTTP 451),
+so on Cloudflare the relay runs at the edge near you; or run it locally with `python3 server.py`.
+**Independent tool – not affiliated with, endorsed or sponsored by Binance.**
+
+### Binance Guard（`/binance`）——中文
+
+Szlaban 的币安账户安全模块，界面完整支持英文、波兰文和简体中文：（1）**API 密钥审计**：检查提现、交易、划转、
+IP 限制、密钥创建时间和账户状态，给出风险等级和修复步骤，也可使用无需密钥的检查清单；（2）**提现地址守护**：
+基准快照只保存在你的浏览器中，下次检查时显示新增、删除或被替换的地址；（3）**假冒币安检测**：在浏览器内离线分析
+链接、邮件发件人和短信内容，给出 0–100 风险分数，并附上币安官方验证渠道链接。Secret Key 从不离开浏览器：
+签名由 WebCrypto 完成，只有 API Key 和签名经过极简的只读中转（仅五个白名单接口，不记录、不存储）。
+币安会拒绝来自美国服务器的请求（HTTP 451），因此在 Cloudflare 地址上中转在离你最近的边缘节点运行；也可以用
+`python3 server.py` 在本地运行。**本工具独立开发，与币安没有任何关联，也未获得其认可或赞助。**
 
 | Desktop | Mobile (390 px) |
 |---|---|

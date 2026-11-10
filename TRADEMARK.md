@@ -22,3 +22,13 @@ publicly offered modified versions.
 - Running the unmodified official code (e.g. for personal use) may keep the name.
 
 Kontakt / contact: Robi (@robi44610 na X / on X).
+
+## Znaki osób trzecich / Third-party marks
+
+**PL.** „Binance” i „BNB” są znakami towarowymi ich właścicieli. Moduł Binance Guard używa tych nazw
+wyłącznie opisowo (żeby powiedzieć, co sprawdza). Szlaban i Binance Guard są niezależne, **nie są
+powiązane z Binance** ani przez nie popierane czy sponsorowane. Nie używamy logo Binance.
+
+**EN.** "Binance" and "BNB" are trademarks of their respective owners. The Binance Guard module uses these
+names only nominatively (to say what it checks). Szlaban and Binance Guard are independent and **not
+affiliated with, endorsed or sponsored by Binance**. No Binance logos are used.

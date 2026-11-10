@@ -1,0 +1,44 @@
+Szlaban – audyt zgód ERC-20 / ERC-20 approvals audit
+Copyright (C) 2026 Robi (@robi44610)
+
+Licencja / License: GNU Affero General Public License v3.0 only (AGPL-3.0-only), see LICENSE.
+Nazwa i logo „Szlaban” nie są objęte licencją – patrz TRADEMARK.md.
+The "Szlaban" name and logo are not licensed – see TRADEMARK.md.
+
+AUTORSTWO / AUTHORSHIP
+Oryginalna, niezależna implementacja autorstwa Robiego (@robi44610). Projekt nie jest forkiem,
+kopią ani pochodną kodu żadnego istniejącego produktu (m.in. Revoke.cash, Etherscan Token
+Approval Checker, Rabby, De.Fi Shield). Nie zawiera ich kodu, grafik ani tekstów.
+Original independent implementation by Robi (@robi44610). Not a fork, copy or derivative of
+any existing product (incl. Revoke.cash, Etherscan Token Approval Checker, Rabby, De.Fi Shield)
+and contains none of their code, graphics or text.
+
+Kod korzysta wyłącznie z biblioteki standardowej Pythona 3 (licencja PSF). Testy e2e używają
+playwright-core (Apache-2.0), instalowanego osobno przez npm – nie jest dołączony do repozytorium.
+The code uses only the Python 3 standard library (PSF License). E2E tests use playwright-core
+(Apache-2.0), installed separately via npm and not bundled.
+
+ZEWNĘTRZNE ŹRÓDŁA DANYCH / THIRD-PARTY DATA SOURCES AND APIS
+Dane są pobierane w czasie działania. Repozytorium ani obraz nie zawierają kopii tych danych.
+Data is fetched at runtime; no copy of it is bundled in this repository or image.
+
+1. Publiczne węzły JSON-RPC Ethereum / public Ethereum JSON-RPC endpoints (bez klucza / no key):
+   - Tenderly Gateway  https://mainnet.gateway.tenderly.co   (warunki / terms: https://tenderly.co/terms-of-service)
+   - MEV Blocker       https://rpc.mevblocker.io             (https://mevblocker.io)
+   - Flashbots Protect https://rpc.flashbots.net             (https://docs.flashbots.net)
+   - PublicNode        https://ethereum-rpc.publicnode.com   (https://www.publicnode.com)
+   - dRPC              https://eth.drpc.org                  (https://drpc.org/terms-of-service)
+   Każdy dostawca ma własne limity i warunki. / Each provider has its own limits and terms.
+2. Ceny / prices: DefiLlama coins API, https://coins.llama.fi (docs: https://defillama.com/docs/api),
+   darmowe publiczne API bez klucza / free public API without key.
+3. Publiczne listy adresów (czarne listy) / public address blocklists:
+   - ScamSniffer scam-database, blacklist/address.json – GPL-3.0,
+     https://github.com/scamsniffer/scam-database (wg README nieaktualizowana od 02.2024 / not updated since Feb 2024)
+   - Forta Network labelled-datasets (phishing_scams.csv, malicious_smart_contracts.csv,
+     etherscan_malicious_labels.csv) – MIT, https://github.com/forta-network/labelled-datasets
+   - MyEtherWallet ethereum-lists, src/addresses/addresses-darklist.json – MIT,
+     https://github.com/MyEtherWallet/ethereum-lists
+4. Linki wychodzące (bez wymiany danych) / outbound links only: etherscan.io, revoke.cash.
+
+Nazwy produktów i firm wymienione powyżej należą do ich właścicieli i służą wyłącznie identyfikacji.
+Product and company names above belong to their owners and are used for identification only.

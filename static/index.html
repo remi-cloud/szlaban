@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<!-- Szlaban – Copyright (C) 2026 Robi (@robi44610) -->
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0a08">
+<meta name="description" content="Szlaban – audyt zgód portfela Ethereum: ile realnie możesz stracić, odporność 0–100, plan sprzątania. Tylko odczyt.">
+<title>Szlaban – audyt zgód portfela</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="stripe" aria-hidden="true"></div>
+  <div class="wrap brand">
+    <div class="logo" aria-hidden="true"><svg viewBox="0 0 64 64" width="44" height="44"><rect x="6" y="38" width="8" height="20" rx="2" fill="#e8e1d3"/><rect x="10" y="24" width="50" height="10" rx="3" transform="rotate(-18 10 29)" fill="#ffb000"/><rect x="18" y="20.5" width="7" height="10" transform="rotate(-18 10 29)" fill="#141210"/><rect x="32" y="16" width="7" height="10" transform="rotate(-18 10 29)" fill="#141210"/><rect x="46" y="11.5" width="7" height="10" transform="rotate(-18 10 29)" fill="#141210"/><circle cx="10" cy="30" r="5" fill="#ff4d2e"/></svg></div>
+    <div>
+      <div class="name">SZLABAN</div>
+      <div class="tag">kto ma klucz do Twoich tokenów? · audyt zgód Ethereum · tylko odczyt</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="gate panel">
+    <h1>Sprawdź, komu kiedyś podniosłeś szlaban.</h1>
+    <p class="lead">Każde „Approve” w aplikacji DeFi to podniesiony szlaban: kontrakt może potem sam wyjąć tokeny z portfela. Szlaban liczy, <b>ile dolarów realnie leży dziś za tymi szlabanami</b>, prześwietla każdego spendera i układa plan sprzątania. Bez łączenia portfela, bez kluczy, bez transakcji.</p>
+    <label for="addr" class="lbl">Adres portfela (0x…)</label>
+    <div class="inrow">
+      <input type="text" id="addr" placeholder="0x…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <button id="go" type="button">Prześwietl</button>
+    </div>
+    <div class="ranges" role="radiogroup" aria-label="Zakres">
+      <span class="small">Zakres:</span>
+      <label class="chip"><input type="radio" name="range" value="year" checked><span>ostatni rok</span></label>
+      <label class="chip"><input type="radio" name="range" value="all"><span>cała historia</span></label>
+      <label class="chip"><input type="radio" name="range" value="custom"><span>własne bloki</span></label>
+    </div>
+    <div class="custom" id="custom">
+      <div><label for="fromB" class="small">od bloku</label><input type="number" id="fromB" min="0" inputmode="numeric" placeholder="np. 15000000"></div>
+      <div><label for="toB" class="small">do bloku (puste = najnowszy)</label><input type="number" id="toB" min="0" inputmode="numeric" placeholder="najnowszy"></div>
+    </div>
+    <div class="track" id="track" aria-hidden="true"><div class="fill"></div><div class="boom"></div></div>
+    <div class="status" id="status" aria-live="polite"></div>
+    <div class="err" id="err" role="alert"></div>
+  </section>
+
+  <div id="results" class="hidden">
+    <section class="hero">
+      <div class="panel scorebox">
+        <div class="kicker">Wskaźnik odporności portfela</div>
+        <div class="gauge" id="gauge"></div>
+        <div class="grade" id="grade"></div>
+        <a href="#wzor" class="small link">Jak liczymy? Wzór i potrącenia ↓</a>
+      </div>
+      <div class="panel moneybox">
+        <div class="kicker">Kwota zagrożona</div>
+        <div class="money" id="money">–</div>
+        <div class="small" id="moneyNote"></div>
+        <div class="counts">
+          <div class="cnt c-h"><b id="cH">0</b><span>wysokie</span></div>
+          <div class="cnt c-s"><b id="cS">0</b><span>średnie</span></div>
+          <div class="cnt c-n"><b id="cN">0</b><span>niskie</span></div>
+          <div class="cnt c-f"><b id="cF">0</b><span>zapomniane</span></div>
+          <div class="cnt c-b"><b id="cB">0</b><span>czarna lista</span></div>
+        </div>
+        <div class="meta" id="meta"></div>
+        <div class="share"><button id="shareBtn" type="button" class="ghost">Skopiuj link do raportu</button> <span class="small" id="shareMsg"></span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="sechead"><h2><span class="num">1</span> Plan sprzątania</h2><button id="copyPlan" type="button" class="ghost">Skopiuj plan</button></div>
+      <p class="small">Kolejność: najpierw spenderzy z czarnych list, potem największa kwota zagrożona, potem zgody bez limitu dla zwykłych kont i nieznanych kontraktów, na końcu najstarsze. Cofasz sam w swoim portfelu – Szlaban nigdy nie wysyła transakcji.</p>
+      <ol class="plan" id="plan"></ol>
+      <div class="howto">
+        <b>Gdzie cofnąć:</b> <a id="revokeLink" href="https://revoke.cash" target="_blank" rel="noopener noreferrer">revoke.cash</a> albo
+        <a href="https://etherscan.io/tokenapprovalchecker" target="_blank" rel="noopener noreferrer">Etherscan Token Approval Checker</a>. Połącz portfel tylko na oficjalnej stronie. Każde cofnięcie to mała transakcja (gaz w ETH).
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="num">2</span> Oś czasu szlabanów</h2>
+      <p class="small">Kiedy dana zgoda została ustawiona lub zmieniona po raz ostatni (ostatnie zdarzenie Approval). Im większa kropka, tym więcej dolarów za nią leży. Kropki z pulsującym pierścieniem to <b>zapomniane</b> zgody bez limitu: ustawione ponad rok temu i od tamtej pory niezmieniane. (Nie wiemy, czy spender z nich korzystał – to wymagałoby analizy transferów.)</p>
+      <div class="timeline" id="timeline"></div>
+      <div class="legend small"><span class="dot d-h"></span>wysokie <span class="dot d-s"></span>średnie <span class="dot d-n"></span>niskie <span class="ring"></span>zapomniana</div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="num">3</span> Kartoteka – wszystkie zgody</h2>
+      <div class="filters">
+        <label class="chip"><input type="checkbox" id="fRisky"><span>tylko ryzykowne</span></label>
+        <label class="chip"><input type="checkbox" id="fUnknown"><span>tokeny bez symbolu (spam)</span></label>
+        <label class="chip"><input type="checkbox" id="fForeign"><span>cudze tx dla znanych routerów (spam)</span></label>
+      </div>
+      <div class="tw">
+        <table id="tbl">
+          <thead><tr>
+            <th data-k="idx">#</th>
+            <th data-k="token">Token</th>
+            <th data-k="spender">Spender</th>
+            <th data-k="amount">Zgoda</th>
+            <th data-k="usd">Zagrożone</th>
+            <th data-k="risk">Ryzyko</th>
+            <th data-k="age">Wiek spendera</th>
+            <th data-k="days">Ustawiona</th>
+            <th data-k="note">Uwagi</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="meta" id="hiddenInfo"></div>
+    </section>
+
+    <section class="panel" id="wzor">
+      <h2><span class="num">4</span> Skąd ten wynik? Jawny wzór</h2>
+      <p class="small">Start: 100 punktów. Potrącenia liczone tylko z widocznych zgód w wybranym zakresie bloków. Wynik nie spada poniżej 0.</p>
+      <table class="ded" id="ded"><thead><tr><th>Zasada</th><th>Ile</th><th>Za sztukę</th><th>Limit</th><th>Potrącenie</th></tr></thead><tbody></tbody></table>
+      <p class="small">Progi: 80–100 Twierdza · 60–79 Solidnie · 40–59 Do sprzątania · 0–39 Alarm.<br>
+      <b>Kwota zagrożona</b> = min(zgoda, Twoje obecne saldo tokena) × cena z DefiLlama. W sumie dla portfela każdy token liczymy raz (saldo da się ukraść tylko raz). Ceny o pewności poniżej <span id="minConf">0,9</span> są pomijane. Wartość „–” znaczy brak wiarygodnej ceny, a nie zero.</p>
+    </section>
+
+    <section class="panel">
+      <h2><span class="num">5</span> Źródła danych</h2>
+      <ul class="small" id="sources"></ul>
+    </section>
+  </div>
+
+  <section class="panel faq">
+    <details><summary>Co oznaczają oceny?</summary>
+      <ul class="small">
+        <li><b class="risk r-WYSOKIE">WYSOKIE</b> – zgoda bez limitu (≥ 2<sup>255</sup>): spender może zabrać wszystkie tokeny tego typu, także kupione później.</li>
+        <li><b class="risk r-SREDNIE">ŚREDNIE</b> – ograniczona zgoda dla zwykłego konta (EOA) albo nieznanego kontraktu.</li>
+        <li><b class="risk r-NISKIE">NISKIE</b> – ograniczona zgoda dla znanego kontraktu (Uniswap, 1inch, CoW, KyberSwap…). „Znany” to marka, nie audyt.</li>
+        <li>„NIE Twoja tx” – zgodę ustawiła cudza transakcja: podpis <i>permit</i> poza siecią (częsty trik phishingowy) albo spam.</li>
+        <li>Wiek spendera = blok, w którym pod tym adresem pojawił się kod (wyszukiwanie binarne na węźle archiwalnym). Młody kontrakt z dużą zgodą to sygnał ostrzegawczy.</li>
+      </ul></details>
+    <details><summary>Ograniczenia i prywatność</summary>
+      <ul class="small">
+        <li>Tylko Ethereum mainnet i tokeny ERC-20 (NFT pomijane). ENS (np. vitalik.eth) nieobsługiwane – podaj adres 0x.</li>
+        <li>Publiczne czarne listy adresów są historyczne (ostatnie aktualizacje 2020–2024). Brak trafienia nie znaczy, że spender jest bezpieczny.</li>
+        <li>Zgody wewnątrz Uniswap Permit2 nie są rozpisywane.</li>
+        <li>Serwer trzyma wynik 10 minut w pamięci. Bez bazy danych, ciasteczek i analityki.</li>
+      </ul></details>
+  </section>
+  <footer class="small">Szlaban v1.0 · © 2026 Robi (@robi44610) · <a href="/whitepaper">Whitepaper</a> · <a href="/source.tar.gz">Kod źródłowy (AGPL-3.0)</a> · <a href="/LICENSE">Licencja</a> · <a href="/NOTICE">NOTICE</a><br>Tylko odczyt: nigdy nie prosi o portfel ani klucze i nie wysyła transakcji. Informacje, nie porada finansowa ani gwarancja bezpieczeństwa.</footer>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>

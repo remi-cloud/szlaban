@@ -1,0 +1,52 @@
+
+ZGODY ERC-20 dla 0xd8da6bf26964af9d7eed9e03e53415d37aa96045
+Zakres blokow: 15000000-20000000 | zdarzen Approval: 476 | par sprawdzonych: 38 | czas: 3s
+
+#    TOKEN        SPENDER (kto moze wydawac)                 ZGODA              RYZYKO   UWAGI
+------------------------------------------------------------------------------------------------------------------
+1    BITE         0x000000000022d473030f116ddee9f6b43ac78ba3 NIELIMITOWANA      WYSOKIE  znany: Uniswap Permit2
+     token: 0x34103e1190b824a44c6a638438d425cba21143ba
+2    BITE         0x216b4b4ba9f3e719726886d34a177484278bfcae NIELIMITOWANA      WYSOKIE  nieznany kontrakt - sprawdz na etherscan
+     token: 0x34103e1190b824a44c6a638438d425cba21143ba
+3    DAI          0xc92e8bdf79f0507f65a392b0ab4667716bfe0110 NIELIMITOWANA      WYSOKIE  znany: CoW Protocol VaultRelayer
+     token: 0x6b175474e89094c44da98b954eedeac495271d0f
+4    DAI          0x000000000022d473030f116ddee9f6b43ac78ba3 NIELIMITOWANA      WYSOKIE  znany: Uniswap Permit2
+     token: 0x6b175474e89094c44da98b954eedeac495271d0f
+5    DAI          0x6248230fba26a2161a71b01486884db41d6524a6 NIELIMITOWANA      WYSOKIE  nieznany kontrakt - sprawdz na etherscan
+     token: 0x6b175474e89094c44da98b954eedeac495271d0f
+6    HEMULE       0x216b4b4ba9f3e719726886d34a177484278bfcae NIELIMITOWANA      WYSOKIE  nieznany kontrakt - sprawdz na etherscan
+     token: 0xeaa63125dd63f10874f99cdbbb18410e7fc79dd3
+7    MOONEY       0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45 NIELIMITOWANA      WYSOKIE  znany: Uniswap SwapRouter02
+     token: 0x20d4db1946859e2adb0e5acc2eac58047ad41395
+8    RAI          0x6248230fba26a2161a71b01486884db41d6524a6 NIELIMITOWANA      WYSOKIE  nieznany kontrakt - sprawdz na etherscan
+     token: 0x03ab458634910aad20ef5f1c8ee96f1d6ac54919
+9    RAI          0xc92e8bdf79f0507f65a392b0ab4667716bfe0110 NIELIMITOWANA      WYSOKIE  znany: CoW Protocol VaultRelayer
+     token: 0x03ab458634910aad20ef5f1c8ee96f1d6ac54919
+10   RAI          0x000000000022d473030f116ddee9f6b43ac78ba3 NIELIMITOWANA      WYSOKIE  znany: Uniswap Permit2
+     token: 0x03ab458634910aad20ef5f1c8ee96f1d6ac54919
+11   RAI          0x216b4b4ba9f3e719726886d34a177484278bfcae NIELIMITOWANA      WYSOKIE  nieznany kontrakt - sprawdz na etherscan
+     token: 0x03ab458634910aad20ef5f1c8ee96f1d6ac54919
+12   SHIT         0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45 NIELIMITOWANA      WYSOKIE  znany: Uniswap SwapRouter02
+     token: 0x4e4a47cac6a28a62dcc20990ed2cda9bc659469f
+13   USHI         0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45 NIELIMITOWANA      WYSOKIE  znany: Uniswap SwapRouter02
+     token: 0x6dca182ac5e3f99985bc4ee0f726d6472ab1ec55
+14   WETH         0xc92e8bdf79f0507f65a392b0ab4667716bfe0110 NIELIMITOWANA      WYSOKIE  znany: CoW Protocol VaultRelayer
+     token: 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+15   AI WEB3      0x2207eea3ae68cdbbb7bdc2e624d9ad2ca886cea6 9.899e+16          SREDNIE  NIE Twoja tx (permit-podpis albo spam); zwykle konto (EOA) - podejrzane!
+     token: 0x0b037269d25c48304482d3e2e7c66590fdfda8d6
+16   DAI          0x06af07097c9eeb7fd685c692751d5c66db49c215 <0.0001            SREDNIE  nieznany kontrakt - sprawdz na etherscan
+     token: 0x6b175474e89094c44da98b954eedeac495271d0f
+17   FUSION       0xdef1c0ded9bec7f1a1670819833240f027b25eff 50 000             NISKIE   znany: 0x Exchange Proxy
+     token: 0x6230f552a1c825d02e1140ccc0d3f5eeec81ca84
+18   FUSION       0x000000000022d473030f116ddee9f6b43ac78ba3 50 000             NISKIE   znany: Uniswap Permit2
+     token: 0x6230f552a1c825d02e1140ccc0d3f5eeec81ca84
+19   HEMULE       0x6131b5fae19ea4f9d964eac0408e4408b66337b5 20 000 000         NISKIE   znany: KyberSwap MetaAggregationRouterV2
+     token: 0xeaa63125dd63f10874f99cdbbb18410e7fc79dd3
+
+Podsumowanie: WYSOKIE 14 | SREDNIE 2 | NISKIE 3
+
+Jak cofnac zgode (revoke):
+  1. Otworz https://revoke.cash/address/0xd8da6bf26964af9d7eed9e03e53415d37aa96045
+  2. Polacz SWOJ portfel tylko na oficjalnej stronie revoke.cash i kliknij Revoke przy zgodzie.
+  3. Cofniecie to transakcja w sieci - kosztuje gaz. To narzedzie NIGDY niczego nie wysyla.
+Uwaga: 'NIELIMITOWANA' = kontrakt moze zabrac WSZYSTKIE tokeny tego typu, takze te kupione pozniej.

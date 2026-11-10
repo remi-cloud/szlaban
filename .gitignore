@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+__pycache__/
+*.pyc
+*.log
+.env
+.env.*
+tests/node_modules/
+tests/package-lock.json
+/tmp/
+.DS_Store
+docs/screenshots/screenshot-year.png

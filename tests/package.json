@@ -1,0 +1,7 @@
+{
+  "name": "szlaban-e2e",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "description": "Testy end-to-end Szlabanu w przegladarce bez okna (playwright-core + systemowy Chrome/Chromium)",
+  "devDependencies": { "playwright-core": "^1.48.0" }
+}

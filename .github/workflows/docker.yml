@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Buduje obraz Docker, uruchamia testy API na kontenerze i publikuje do ghcr.io.
+name: docker
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t szlaban:ci .
+      - name: Run container
+        run: |
+          docker run -d --name szlaban -p 8080:8080 szlaban:ci
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 2; done
+      - name: API tests
+        run: BASE=http://127.0.0.1:8080 bash tests/test_api.sh
+      - name: Container logs
+        if: always()
+        run: docker logs szlaban || true
+      - name: Publish to ghcr.io
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker tag szlaban:ci ghcr.io/remi-cloud/szlaban:latest
+          docker tag szlaban:ci ghcr.io/remi-cloud/szlaban:${{ github.sha }}
+          docker push ghcr.io/remi-cloud/szlaban:latest
+          docker push ghcr.io/remi-cloud/szlaban:${{ github.sha }}

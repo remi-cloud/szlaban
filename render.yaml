@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Render Blueprint: darmowy serwis webowy budowany z Dockerfile.
+services:
+  - type: web
+    name: szlaban
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: TRUST_PROXY
+        value: "1"
+      - key: SOURCE_URL
+        value: https://github.com/remi-cloud/szlaban

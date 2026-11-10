@@ -59,14 +59,15 @@
     if (lastList) renderGuard(lastList.list, lastList.diff);
     if (lastDet) renderDetect(lastDet);
     for (const [box, e] of Object.entries(lastErr)) if (e) showErr(box, e);
+    if (window.BGUI) window.BGUI.onLang.forEach(f => f());
   }
 
   // ---------- zakładki ----------
   function showTab(name) {
     document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name ? "true" : "false"));
-    ["audit", "guard", "detect"].forEach(n => $("sec-" + n).classList.toggle("hidden", n !== name));
-    $("keypanel").classList.toggle("hidden", name === "detect");
-    if (history.replaceState) history.replaceState(null, "", "#" + name);
+    ["audit", "guard", "detect", "blue"].forEach(n => $("sec-" + n).classList.toggle("hidden", n !== name));
+    $("keypanel").classList.toggle("hidden", name === "detect" || name === "blue");
+    if (history.replaceState && !(location.hash || "").startsWith("#trap=")) history.replaceState(null, "", "#" + name);
   }
   document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
   document.querySelectorAll(".lang").forEach(b => b.addEventListener("click", () => applyLang(b.dataset.lang)));
@@ -180,15 +181,34 @@
   }
 
   // ---------- lista ręczna ----------
-  const CHECKS = ["chk_2fa", "chk_antiphish", "chk_whitelist", "chk_api", "chk_devices", "chk_email", "chk_password", "chk_verify", "chk_seed"];
+  // Źródła: wyłącznie oficjalne strony Binance i Apple (sprawdzone 2026-11-10).
+  const SRC = {
+    passkey: "https://www.binance.com/en/support/faq/how-to-create-a-passkey-for-my-binance-account-2aec8fe0437242f2a5fbef9cdb71d4c2",
+    antiphish: "https://www.binance.com/en/support/faq/detail/311927d6c4b4478ba094fc6a611d5201",
+    withdraw: "https://www.binance.com/en/support/faq/detail/1d08944f103b4fc78d3519913b600086",
+    devices: "https://www.binance.com/en/blog/security/14-tips-to-secure-your-binance-account-how-to-protect-your-crypto-335022638333390848",
+    verify: "https://www.binance.com/en/official-verification",
+    simpin: "https://support.apple.com/en-us/118228",
+    lockdown: "https://support.apple.com/en-us/105120"
+  };
+  const GROUPS = [
+    { h: "chk_h_basic", items: [["chk_2fa", "passkey"], ["chk_antiphish", "antiphish"], ["chk_whitelist", "withdraw"], ["chk_api"], ["chk_devices", "devices"],
+      ["chk_email"], ["chk_password"], ["chk_verify", "verify"], ["chk_seed"]] },
+    { h: "chk_h_phone", note: "chk_phone_note", items: [["chk_no_sms2fa", "passkey"], ["chk_wl_limit", "withdraw"], ["chk_simpin", "simpin"], ["chk_portout"], ["chk_lockdown", "lockdown"]] }
+  ];
+  const CHECKS = GROUPS.flatMap(g => g.items.map(i => i[0]));
   function checkState() { try { return JSON.parse(store.get(LS_CHECK) || "{}") || {}; } catch (e) { return {}; } }
   function renderChecklist() {
     const st = checkState(), ul = $("checklist"); clear(ul);
-    for (const k of CHECKS) {
-      const cb = el("input", { type: "checkbox", id: "c-" + k });
-      cb.checked = st[k] === true;
-      cb.addEventListener("change", () => { const s = checkState(); s[k] = cb.checked; store.set(LS_CHECK, JSON.stringify(s)); renderScore(); });
-      ul.append(el("li", null, el("label", { for: "c-" + k }, cb, el("span", null, t(k)))));
+    for (const g of GROUPS) {
+      ul.append(el("li", { class: "chk-h" }, el("b", null, t(g.h)), g.note ? el("div", { class: "small" }, t(g.note)) : null));
+      for (const [k, src] of g.items) {
+        const cb = el("input", { type: "checkbox", id: "c-" + k });
+        cb.checked = st[k] === true;
+        cb.addEventListener("change", () => { const s = checkState(); s[k] = cb.checked; store.set(LS_CHECK, JSON.stringify(s)); renderScore(); });
+        ul.append(el("li", null, el("label", { for: "c-" + k }, cb, el("span", null, t(k),
+          src ? el("span", { class: "small" }, " (", el("a", { href: SRC[src], target: "_blank", rel: "noopener noreferrer" }, t("src")), ")") : null))));
+      }
     }
     renderScore();
   }
@@ -290,5 +310,7 @@
   applyLang(pickLang());
   setMode();
   const h = (location.hash || "").slice(1);
-  showTab(["audit", "guard", "detect"].includes(h) ? h : "audit");
+  showTab(["audit", "guard", "detect", "blue"].includes(h) ? h : h.startsWith("trap=") ? "blue" : "audit");
+  // Wspólne API dla bg-blue.js (moduł 4)
+  window.BGUI = { t, el, clear, fmtDate, showErr, hideErr, onLang: [] };
 })();

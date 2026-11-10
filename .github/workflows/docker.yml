@@ -13,13 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Offline unit tests (detector, HMAC, i18n, relay, Cloudflare Worker)
+      - name: Offline unit tests (detector, HMAC, i18n, relay, Cloudflare Worker, RE, Blue Team)
         run: |
           node --version
           node tests/test_detector.js
           node tests/test_bg_core.js
           node tests/test_worker.mjs
-          python3 -m unittest -v tests/test_relay.py
+          python3 -m unittest -v tests/test_relay.py tests/test_re.py tests/test_blueteam.py
       - name: Build image
         run: docker build -t szlaban:ci .
       - name: Run container

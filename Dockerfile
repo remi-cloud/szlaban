@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PORT=8080
 
 WORKDIR /app
-COPY server.py scanner.py forensics.py mdlite.py zgody.py binance_relay.py Dockerfile .dockerignore .gitignore /app/
+COPY server.py scanner.py forensics.py mdlite.py zgody.py binance_relay.py re_static.py blueteam.py Dockerfile .dockerignore .gitignore /app/
 COPY static/ /app/static/
 COPY tests/ /app/tests/
 COPY cloudflare/ /app/cloudflare/

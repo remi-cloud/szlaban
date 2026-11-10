@@ -92,6 +92,8 @@ const ids = r => r.findings.map(f => f.id);
     for (const v of ["official", "related", "suspicious", "unknown", "invalid"]) used.add("v_" + v);
     for (const v of ["hash", "data"]) used.add("mode_" + v);
     for (const m of js.matchAll(/"(chk_\w+)"/g)) used.add(m[1]);
+    const blue = fs.readFileSync(path.join(st, "bg-blue.js"), "utf8");
+    for (const m of blue.matchAll(/\bt\("(\w+)"(?!\s*\+)/g)) used.add(m[1]);
     const det = fs.readFileSync(path.join(st, "bg-detector.js"), "utf8");
     for (const m of det.matchAll(/(?:add|push)\(\{?\s*(?:code:\s*)?"(\w+)"(?!\s*\+)/g)) used.add("r_" + m[1]);
     for (const m of det.matchAll(/\["(\w+)", \d+, \//g)) used.add("r_cue_" + m[1]);

@@ -42,6 +42,7 @@
     <button type="button" role="tab" class="tab" id="tab-audit" data-tab="audit" aria-controls="sec-audit" data-i18n="tab_audit"></button>
     <button type="button" role="tab" class="tab" id="tab-guard" data-tab="guard" aria-controls="sec-guard" data-i18n="tab_guard"></button>
     <button type="button" role="tab" class="tab" id="tab-detect" data-tab="detect" aria-controls="sec-detect" data-i18n="tab_detect"></button>
+    <button type="button" role="tab" class="tab" id="tab-blue" data-tab="blue" aria-controls="sec-blue" data-i18n="tab_blue"></button>
   </div>
 
   <section class="panel" id="keypanel">
@@ -124,11 +125,55 @@
     <p class="small" id="officialList"></p>
   </section>
 
+  <section class="panel tabsec hidden" id="sec-blue" role="tabpanel" aria-labelledby="tab-blue">
+    <h2 data-i18n="blue_h"></h2>
+    <p class="small" data-i18n="blue_note"></p>
+
+    <div class="subsec">
+      <h3 data-i18n="re_h"></h3>
+      <p class="small" data-i18n="re_note"></p>
+      <label for="reFile" class="lbl" data-i18n="re_file"></label>
+      <input type="file" id="reFile">
+      <label for="reText" class="lbl" data-i18n="re_or"></label>
+      <textarea id="reText" rows="3" maxlength="200000" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+      <button type="button" id="reRun" data-i18n="re_run"></button>
+      <div class="status" id="reStatus" aria-live="polite"></div>
+      <div class="err" id="reErr" role="alert"></div>
+      <div id="reOut"></div>
+    </div>
+
+    <div class="subsec">
+      <h3 data-i18n="trap_h"></h3>
+      <p class="small" data-i18n="trap_note"></p>
+      <label for="trapLabel" class="lbl" data-i18n="trap_label"></label>
+      <div class="inrow"><input type="text" id="trapLabel" maxlength="60" autocomplete="off"><button type="button" id="trapNew" data-i18n="trap_new"></button></div>
+      <div class="err" id="trapErr" role="alert"></div>
+      <div id="trapOut"></div>
+      <details><summary data-i18n="trap_where_h"></summary>
+        <ul class="small"><li data-i18n="trap_where_1"></li><li data-i18n="trap_where_2"></li><li data-i18n="trap_where_3"></li><li data-i18n="trap_where_4"></li><li data-i18n="trap_where_5"></li></ul>
+      </details>
+      <p class="small warn" data-i18n="trap_sleep"></p>
+      <p class="small warn" data-i18n="trap_ephemeral"></p>
+      <p class="small" data-i18n="trap_dns"></p>
+      <h3 data-i18n="trap_mine"></h3>
+      <div id="trapList"></div>
+    </div>
+
+    <div class="subsec">
+      <h3 data-i18n="hard_h"></h3>
+      <p class="small" data-i18n="hard_note"></p>
+      <button type="button" class="ghost" id="hardLoad" data-i18n="hard_load"></button>
+      <div class="err" id="hardErr" role="alert"></div>
+      <div id="hardOut"></div>
+    </div>
+  </section>
+
   <footer class="small"><span data-i18n="footer"></span> · <a href="https://github.com/remi-cloud/szlaban" data-i18n="source"></a> · <a href="/LICENSE" data-i18n="license"></a> · <a href="/TRADEMARK" data-i18n="trademark"></a><br><span data-i18n="disclaimer"></span></footer>
 </main>
 <script src="/bg-i18n.js"></script>
 <script src="/bg-core.js"></script>
 <script src="/bg-detector.js"></script>
 <script src="/binance.js"></script>
+<script src="/bg-blue.js"></script>
 </body>
 </html>

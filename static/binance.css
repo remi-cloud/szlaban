@@ -40,3 +40,13 @@ textarea:focus{outline:2px solid var(--amb);border-color:transparent}
 .diff-ok{border:1px solid var(--grn);background:var(--grnbg);border-radius:10px;padding:10px 12px;margin:10px 0}
 .pre{white-space:pre-wrap;font-family:var(--mono);font-size:.8rem}
 @media (max-width:700px){.tab{width:100%}.langs{width:100%}.langs .lang{flex:1}}
+.subsec{border-top:1px dashed var(--line);margin-top:18px;padding-top:14px}
+.subsec h3{font:700 1rem var(--mono);color:var(--amb);margin:6px 0}
+input[type=file]{color:var(--txt);margin:6px 0 4px}
+.kv{display:grid;grid-template-columns:140px 1fr;gap:4px 12px;font-size:.85rem;margin:10px 0}
+.kv b{color:var(--mut);font-weight:700}
+.ioc{margin:6px 0}.ioc ul{margin:4px 0;max-height:220px;overflow:auto}
+.copybox{font-family:var(--mono);font-size:.8rem;background:#0e0c0a;border:1px solid var(--line);border-radius:8px;padding:8px;word-break:break-all;margin:4px 0}
+.trapcard{border:1px solid var(--line);background:var(--p2);border-radius:12px;padding:10px 12px;margin:8px 0}
+@media (max-width:700px){.kv{grid-template-columns:1fr}}
+.chk-h{margin-top:14px!important}

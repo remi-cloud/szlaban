@@ -46,4 +46,24 @@ code=$(curl -s -o /tmp/bg_relay.json -w '%{http_code}' -H "$J" -d "{\"endpoint\"
 case "$code" in 400|451|502) check "relay do Binance ($(cat /tmp/bg_relay.json | head -c 120))" ok ok;; *) check "relay do Binance" "$code" "400|451|502";; esac
 code=$(curl -s -o /tmp/bg_time.json -w '%{http_code}' -H "$J" -d '{"endpoint":"time"}' "$R")
 case "$code" in 200|451|502) check "relay time ($code)" ok ok;; *) check "relay time" "$code" "200|451|502";; esac
+# --- RE + Blue Team ---
+check "plik bg-blue.js" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/bg-blue.js")" 200
+printf 'Binance: send your seed phrase to https://binance-help.top/x 1234567890:AA%s' "$(printf 'b%.0s' $(seq 1 33))" > /tmp/bt_sample.txt
+check "RE analiza tekstu" "$(curl -s -H 'Content-Type: application/octet-stream' -H 'X-Filename: sample.txt' --data-binary @/tmp/bt_sample.txt "$BASE/api/re/analyze" | python3 -c 'import json,sys;r=json.load(sys.stdin);c={i["code"] for i in r["indicators"]};print(int({"seed_harvest","telegram_exfil"}<=c and r["type"]=="text"))')" 1
+head -c 21000000 /dev/zero > /tmp/bt_big.bin
+check "RE limit 20 MB" "$(curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/octet-stream' --data-binary @/tmp/bt_big.bin "$BASE/api/re/analyze")" 413
+check "RE bez tresci" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/re/analyze")" 411
+check "decoy /.env" "$(curl -s "$BASE/.env" | grep -c 'BINANCE_API_KEY=SZLD')" 1
+check "decoy /.git/config alias" "$(curl -s "$BASE/.git/config" | grep -c '/t/d-git')" 1
+check "decoy /wp-login.php" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/wp-login.php")" 200
+check "robots.txt" "$(curl -s "$BASE/robots.txt" | grep -c 'Disallow: /admin/')" 1
+check "raport blueteam" "$(curl -s "$BASE/api/blueteam/report" | python3 -c 'import json,sys;r=json.load(sys.stdin);print(int(r["hits_total"]>=3 and r["frontend"]["secrets"]==0 and "/.env" in r["by_path"]))')" 1
+T=$(curl -s -H "$J" -d '{"label":"ci","kind":"file"}' "$BASE/api/trap/new")
+TID=$(echo "$T" | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])'); TK=$(echo "$T" | python3 -c 'import json,sys;print(json.load(sys.stdin)["key"])')
+check "pulapka gif" "$(curl -s -o /dev/null -w '%{http_code} %{content_type}' -A 'CI-UA' "$BASE/t/$TID.gif")" "200 image/gif"
+check "pulapka strona" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/t/$TID/restore")" 404
+check "nieznana pulapka wyglada tak samo" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/t/00000000000000000000/restore")" 404
+check "panel: trafienia" "$(curl -s -H "$J" -d "{\"id\":\"$TID\",\"key\":\"$TK\"}" "$BASE/api/trap/hits" | python3 -c 'import json,sys;h=json.load(sys.stdin)["hits"];print(len(h), h[-1]["ua"])')" "2 CI-UA"
+check "panel: zly klucz" "$(curl -s -o /dev/null -w '%{http_code}' -H "$J" -d "{\"id\":\"$TID\",\"key\":\"xxxxxxxxxxxxxxxxxxxxxxxx\"}" "$BASE/api/trap/hits")" 404
+check "panel: usun" "$(curl -s -o /dev/null -w '%{http_code}' -H "$J" -d "{\"id\":\"$TID\",\"key\":\"$TK\"}" "$BASE/api/trap/delete")" 200
 echo "wynik: $ok OK, $bad FAIL"; [ $bad = 0 ]

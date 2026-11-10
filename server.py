@@ -17,6 +17,9 @@ API:
   GET  /source.tar.gz -> pelny kod zrodlowy tej instancji (AGPL-3.0, sekcja 13)
   GET  /binance       -> Binance Guard (audyt klucza API, strażnik adresów, wykrywacz phishingu; EN/PL/ZH)
   POST /api/binance/relay -> przekaznik TYLKO DO ODCZYTU: przyjmuje gotowy podpis, nigdy sekret
+  POST /api/re/analyze     -> statyczna analiza pliku (RE), w pamieci, bez uruchamiania i zapisu
+  POST /api/trap/new|hits|delete, GET /t/<id>[...] -> pulapki Blue Team (honeytokens)
+  GET  /api/blueteam/report -> raport utwardzenia (skan frontendu + trafienia w puste aliasy)
 """
 import json
 import os
@@ -36,18 +39,21 @@ import scanner  # noqa: E402
 import forensics  # noqa: E402
 import mdlite  # noqa: E402
 import binance_relay  # noqa: E402
+import re_static  # noqa: E402
+import blueteam  # noqa: E402
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DOC_DIRS = [os.path.join(APP_DIR, "docs"), APP_DIR]
 SOURCE_URL = os.environ.get("SOURCE_URL", "/source.tar.gz")
 # Pliki wchodzace do /source.tar.gz (AGPL sekcja 13 - kod tej instancji dla uzytkownikow sieci)
-SOURCE_FILES = ["server.py", "scanner.py", "forensics.py", "mdlite.py", "zgody.py", "binance_relay.py", "Dockerfile",
+SOURCE_FILES = ["server.py", "scanner.py", "forensics.py", "mdlite.py", "zgody.py", "binance_relay.py", "re_static.py", "blueteam.py", "Dockerfile",
                 ".dockerignore", ".gitignore", "README.md", "WHITEPAPER.md", "LICENSE", "NOTICE",
                 "TRADEMARK.md", "AUTHORS", "static/index.html", "static/app.js", "static/style.css",
                 "static/favicon.svg", "tests/e2e.js", "tests/shots.js", "tests/sample.txt", "tests/package.json", "tests/run_e2e.sh",
                 "tests/test_api.sh", "static/binance.html", "static/binance.js", "static/binance.css",
                 "static/bg-i18n.js", "static/bg-detector.js", "static/bg-core.js", "tests/test_detector.js",
                 "tests/test_bg_core.js", "tests/test_relay.py", "tests/test_worker.mjs", "tests/e2e_binance.js",
+                "tests/test_re.py", "tests/test_blueteam.py", "static/bg-blue.js",
                 "cloudflare/worker.js", "cloudflare/wrangler.toml", "cloudflare/README.md"]
 _src_cache = {}
 
@@ -60,6 +66,8 @@ JOB_MAX_SECONDS = int(os.environ.get("JOB_MAX_SECONDS", "600"))
 TRUST_PROXY = os.environ.get("TRUST_PROXY", "0") == "1"      # X-Forwarded-For tylko za proxy chmury
 BG_RATE_MAX = int(os.environ.get("BG_RATE_MAX", "40"))       # zapytan relay Binance na IP
 BG_RATE_WINDOW = int(os.environ.get("BG_RATE_WINDOW", "600"))  # w oknie 10 min
+RE_RATE_MAX = int(os.environ.get("RE_RATE_MAX", "10"))       # analiz plikow na IP / 10 min
+re_slots = threading.BoundedSemaphore(int(os.environ.get("RE_MAX_RUNNING", "2")))
 ADDR_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 RANGE_RE = re.compile(r"^(all|year|\d{1,9}-(\d{1,9}|latest)?)$")
 MIME = {".html": "text/html; charset=utf-8", ".js": "application/javascript; charset=utf-8",
@@ -259,6 +267,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.static("/index.html")
         if path in ("/binance", "/binance/"):
             return self.static("/binance.html")
+        if path == "/robots.txt":
+            return self.send(200, blueteam.ROBOTS.encode(), "text/plain; charset=utf-8")
+        if path == "/api/blueteam/report":
+            return self.send(200, blueteam.report(STATIC_DIR))
+        m = re.match(r"^/t/((?:d-)?[0-9a-z-]{1,40})((?:\.gif|/[\w./-]{0,100})?)$", path)
+        if m:
+            return self.trap_hit(m.group(1), m.group(2))
+        if path in blueteam.DECOY_SET:
+            return self.decoy(path)
         if path.startswith("/api/"):
             return self.err(404, "Nieznany adres API.")
         return self.static(path)
@@ -267,6 +284,10 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         if u.path == "/api/binance/relay":
             return self.binance_relay()
+        if u.path == "/api/re/analyze":
+            return self.re_analyze()
+        if u.path in ("/api/trap/new", "/api/trap/hits", "/api/trap/delete"):
+            return self.trap_api(u.path.rsplit("/", 1)[1])
         if u.path != "/api/scan":
             return self.err(404, "Nieznany adres API.")
         try:
@@ -332,6 +353,111 @@ class Handler(BaseHTTPRequestHandler):
             log("binance relay blad: %s" % type(e).__name__)
             code, body = 500, {"error": "internal"}
         return self.send(code, body, extra={"X-Robots-Tag": "noindex", "X-BG-Relay": "server"})
+
+    def base_url(self):
+        host = self.headers.get("X-Forwarded-Host") if TRUST_PROXY else None
+        host = host or self.headers.get("Host") or "127.0.0.1"
+        if not re.match(r"^[A-Za-z0-9.-]{1,200}(:\d{1,5})?$", host):
+            host = "127.0.0.1"
+        proto = "https" if (TRUST_PROXY and self.headers.get("X-Forwarded-Proto", "") == "https") or not re.match(r"^(127\.|localhost)", host) else "http"
+        return "%s://%s" % (proto, host)
+
+    def decoy(self, path):
+        """Pusty alias dla skanerow: wiarygodna, falszywa tresc + wpis w raporcie Blue Team."""
+        blueteam.record_decoy(path, self.client_ip(), self.headers.get("User-Agent", ""))
+        blueteam.tarpit()
+        ctype, body, code = blueteam.decoy_body(path, self.base_url())
+        return self.send(code, body.encode("utf-8"), ctype, extra={"X-Robots-Tag": "noindex", "Cache-Control": "no-store"})
+
+    def trap_hit(self, tid, rest):
+        blueteam.record_hit(tid, rest, self.client_ip(), self.headers.get("User-Agent", ""))
+        if rest.endswith(".gif"):
+            return self.send(200, blueteam.GIF, "image/gif", extra={"Cache-Control": "no-store", "X-Robots-Tag": "noindex"})
+        if "/api" in rest or rest.endswith(".json"):
+            return self.send(401, {"code": -2015, "msg": "Invalid API-key, IP, or permissions for action."})
+        page = ("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"robots\" content=\"noindex\">"
+                "<title>Link expired</title></head><body><p>This link has expired.</p></body></html>")
+        return self.send(404, page.encode("utf-8"), "text/html; charset=utf-8", extra={"Cache-Control": "no-store"})
+
+    def read_json(self, limit=2048):
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            n = -1
+        if n < 0 or n > limit:
+            return None, (413, "too_large")
+        if (self.headers.get("Content-Type") or "").split(";")[0].strip().lower() != "application/json":
+            return None, (415, "json_required")
+        try:
+            d = json.loads(self.rfile.read(n).decode("utf-8") or "{}")
+        except (ValueError, UnicodeDecodeError):
+            return None, (400, "bad_json")
+        if not isinstance(d, dict):
+            return None, (400, "bad_json")
+        return d, None
+
+    def trap_api(self, action):
+        d, e = self.read_json()
+        if e:
+            return self.send(e[0], {"error": e[1]})
+        ip = self.client_ip()
+        if action == "new":
+            if not blueteam.rate_ok("new", ip, 10):
+                return self.send(429, {"error": "rate_limited"}, extra={"Retry-After": "60"})
+            t = blueteam.new_token(str(d.get("label", "")), str(d.get("kind", "file")))
+            if not t:
+                return self.send(503, {"error": "full"})
+            base = self.base_url()
+            t["base"] = base
+            t["urls"] = {"page": base + "/t/" + t["id"], "gif": base + "/t/" + t["id"] + ".gif",
+                         "api": base + "/t/" + t["id"] + "/api/v3/account", "restore": base + "/t/" + t["id"] + "/restore",
+                         "wallet": base + "/t/" + t["id"] + "/wallet"}
+            t["ephemeral"] = bool(os.environ.get("RENDER"))
+            return self.send(200, t)
+        if not blueteam.rate_ok("view", ip, 60):
+            return self.send(429, {"error": "rate_limited"}, extra={"Retry-After": "60"})
+        tid, key = d.get("id"), d.get("key")
+        if action == "hits":
+            v = blueteam.view_token(tid, key)
+            return self.send(200, v) if v else self.send(404, {"error": "not_found"})
+        return self.send(200, {"ok": True}) if blueteam.delete_token(tid, key) else self.send(404, {"error": "not_found"})
+
+    def re_analyze(self):
+        """Statyczna analiza pliku. Tresc tylko w pamieci; nie logujemy nazwy ani zawartosci."""
+        try:
+            n = int(self.headers.get("Content-Length") or -1)
+        except ValueError:
+            n = -1
+        if n < 1:
+            return self.send(411, {"error": "length_required"})
+        if n > re_static.MAX_FILE:
+            return self.send(413, {"error": "too_large", "max": re_static.MAX_FILE})
+        if not blueteam.rate_ok("re", self.client_ip(), RE_RATE_MAX):
+            return self.send(429, {"error": "rate_limited"}, extra={"Retry-After": "60"})
+        if not re_slots.acquire(blocking=False):
+            return self.send(503, {"error": "busy"}, extra={"Retry-After": "10"})
+        try:
+            buf, left = bytearray(), n
+            while left > 0:
+                chunk = self.rfile.read(min(left, 1 << 20))
+                if not chunk:
+                    break
+                buf += chunk
+                left -= len(chunk)
+            if left:
+                return self.send(400, {"error": "incomplete"})
+            from urllib.parse import unquote
+            name = unquote(self.headers.get("X-Filename", ""))[:200]
+            try:
+                res = re_static.analyze(bytes(buf), name)
+            except Exception as e:  # analiza best effort; bez tresci w logu
+                log("re blad: %s" % type(e).__name__)
+                return self.send(500, {"error": "internal"})
+            finally:
+                del buf
+            return self.send(200, res, extra={"X-Robots-Tag": "noindex"})
+        finally:
+            re_slots.release()
 
     def doc_path(self, name):
         for d in DOC_DIRS:
